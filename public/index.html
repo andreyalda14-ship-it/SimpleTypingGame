@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <meta name="bingbot" content="noindex, nofollow" />
+  <title>Sky Type — Falling Letter Shooter</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="stars"></div>
+  <canvas id="particles"></canvas>
+
+  <main id="game">
+    <header class="hud">
+      <div class="hud-block">
+        <span class="label">Score</span>
+        <span id="score" class="value">0</span>
+      </div>
+      <div class="hud-block combo" id="combo-wrap">
+        <span class="label">Combo</span>
+        <span id="combo" class="value">×1</span>
+      </div>
+      <div class="hud-block">
+        <span class="label">Level</span>
+        <span id="level" class="value">1</span>
+      </div>
+      <div class="hud-block lives">
+        <span class="label">Lives</span>
+        <div id="lives" class="life-dots"></div>
+      </div>
+      <div class="hud-block accuracy">
+        <span class="label">Accuracy</span>
+        <span id="accuracy" class="value">100%</span>
+      </div>
+      <button id="pause-btn" type="button" class="hud-btn" disabled>Pause</button>
+    </header>
+
+    <div id="playfield">
+      <div id="danger-line"></div>
+      <div id="letters"></div>
+    </div>
+
+    <footer class="input-hint">
+      <span>Type falling letters to shoot them. Missed letters cost a life. Press <kbd>Esc</kbd> or <kbd>P</kbd> to pause.</span>
+      <kbd id="last-key" class="hidden"></kbd>
+    </footer>
+  </main>
+
+  <section id="overlay" class="visible">
+    <div class="panel">
+      <h1>Sky Type</h1>
+      <p class="tagline">Letters rain from the sky — type them before they land.</p>
+      <ul class="rules">
+        <li>Press the key shown on each falling letter to destroy it.</li>
+        <li>If multiple letters share a key, the lowest one is targeted first.</li>
+        <li>Chain hits without mistakes to build your combo multiplier.</li>
+        <li>Let a letter reach the red line and you lose a life.</li>
+      </ul>
+      <label class="player-label" for="player-name">Player name</label>
+      <input id="player-name" class="player-input" type="text" maxlength="32" pattern="[\w\s.\-]{1,32}" title="Letters, numbers, spaces, and . _ - only" placeholder="Enter your name" autocomplete="nickname" required />
+      <button id="start-btn" type="button">Start Game</button>
+      <p class="tip">Click Start Game to begin</p>
+      <aside class="leaderboard">
+        <h3>Top 10 High Scores</h3>
+        <ol id="leaderboard-list"></ol>
+        <p id="leaderboard-status" class="leaderboard-status"></p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="pause" class="hidden">
+    <div class="panel">
+      <h2>Paused</h2>
+      <dl class="stats pause-stats">
+        <div><dt>Score</dt><dd id="pause-score">0</dd></div>
+        <div><dt>Combo</dt><dd id="pause-combo">×1</dd></div>
+        <div><dt>Level</dt><dd id="pause-level">1</dd></div>
+        <div><dt>Lives</dt><dd id="pause-lives">3</dd></div>
+        <div><dt>Accuracy</dt><dd id="pause-accuracy">100%</dd></div>
+        <div><dt>Best Combo</dt><dd id="pause-max-combo">×1</dd></div>
+        <div><dt>Letters Shot</dt><dd id="pause-hits">0</dd></div>
+        <div><dt>Misses</dt><dd id="pause-misses">0</dd></div>
+        <div><dt>Wrong Keys</dt><dd id="pause-wrong">0</dd></div>
+        <div><dt>Time</dt><dd id="pause-time">0:00</dd></div>
+        <div><dt>On Screen</dt><dd id="pause-on-screen">0</dd></div>
+      </dl>
+      <div class="panel-actions">
+        <button id="resume-btn" type="button">Resume</button>
+        <button id="pause-menu-btn" type="button" class="btn-menu">Main Menu</button>
+      </div>
+      <p class="tip">Press Esc or P to resume</p>
+    </div>
+  </section>
+
+  <section id="gameover" class="hidden">
+    <div class="panel">
+      <h2>Game Over</h2>
+      <dl class="stats">
+        <div><dt>Final Score</dt><dd id="final-score">0</dd></div>
+        <div><dt>Best Combo</dt><dd id="final-combo">×1</dd></div>
+        <div><dt>Letters Shot</dt><dd id="final-hits">0</dd></div>
+        <div><dt>Accuracy</dt><dd id="final-accuracy">0%</dd></div>
+      </dl>
+      <p id="save-status" class="save-status"></p>
+      <div class="panel-actions gameover-actions">
+        <button id="save-score-btn" type="button">Save Score</button>
+        <button id="restart-btn" type="button">Play Again</button>
+        <button id="gameover-menu-btn" type="button" class="btn-menu">Main Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="game.js"></script>
+</body>
+</html>
