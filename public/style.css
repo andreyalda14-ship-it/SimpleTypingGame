@@ -246,6 +246,130 @@ body {
   100% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
 }
 
+.letter.danger-explode {
+  animation: letter-danger-explode 0.4s ease-out forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes letter-danger-explode {
+  0% {
+    opacity: 1;
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: 0 0 24px var(--danger);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5);
+    filter: brightness(1.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.4);
+    filter: blur(8px);
+  }
+}
+
+.danger-burst {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  margin-left: -45px;
+  margin-top: -45px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(
+    circle,
+    rgba(255, 51, 102, 0.95) 0%,
+    rgba(255, 120, 50, 0.55) 40%,
+    transparent 72%
+  );
+  animation: danger-burst 0.45s ease-out forwards;
+}
+
+.danger-ring {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  margin-left: -26px;
+  margin-top: -26px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 51, 102, 0.85);
+  box-shadow: 0 0 20px var(--danger);
+  pointer-events: none;
+  z-index: 3;
+  animation: danger-ring 0.45s ease-out forwards;
+}
+
+@keyframes danger-burst {
+  0% {
+    transform: scale(0.25);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes danger-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+#danger-line.danger-flash {
+  animation: danger-line-flash 0.4s ease-out;
+}
+
+@keyframes danger-line-flash {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 12px var(--danger);
+  }
+  40% {
+    opacity: 1;
+    height: 4px;
+    box-shadow:
+      0 0 24px var(--danger),
+      0 0 48px rgba(255, 51, 102, 0.7),
+      0 -8px 32px rgba(255, 100, 50, 0.4);
+  }
+}
+
+#playfield.danger-hit {
+  animation: playfield-shake 0.4s ease;
+}
+
+@keyframes playfield-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
 .input-hint {
   padding: 0.6rem 0;
   font-size: 0.75rem;
@@ -458,20 +582,11 @@ button:active {
   font-family: "Orbitron", sans-serif;
 }
 
-.leaderboard-status,
-.save-status {
+.leaderboard-status {
   margin-top: 0.5rem;
   font-size: 0.7rem;
   color: var(--muted);
   min-height: 1em;
-}
-
-.save-status.ok {
-  color: var(--accent);
-}
-
-.save-status.err {
-  color: var(--danger);
 }
 
 .panel-actions {
@@ -496,23 +611,6 @@ button:active {
   border-color: var(--muted);
   background: rgba(107, 122, 153, 0.15);
   box-shadow: none;
-}
-
-#save-score-btn {
-  background: transparent;
-  color: var(--accent);
-  border: 2px solid var(--accent-dim);
-}
-
-#save-score-btn:hover {
-  background: rgba(0, 245, 212, 0.12);
-  box-shadow: var(--glow);
-}
-
-#save-score-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .stats {

@@ -2,7 +2,12 @@ const express = require("express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
-const { addPlayerScore, getTopScores } = require("./db");
+const {
+  addPlayerScore,
+  getTopScores,
+  getStandingForEntry,
+  evaluateScore,
+} = require("./db");
 const { LEADERBOARD_TOP } = require("./lib/validate");
 
 const app = express();
@@ -74,8 +79,13 @@ app.post("/api/scores", scorePostLimiter, (req, res) => {
       return res.status(400).json({ error: "Invalid request body" });
     }
     const { name, score } = req.body;
+    const result = evaluateScore(score);
+    if (!result.qualifies) {
+      return res.status(400).json({ error: "Score does not qualify for the leaderboard" });
+    }
     const row = addPlayerScore(name, score);
-    res.status(201).json(row);
+    const standing = getStandingForEntry(row.id);
+    res.status(201).json({ ...row, standing });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -83,6 +93,14 @@ app.post("/api/scores", scorePostLimiter, (req, res) => {
 
 app.get("/api/scores", (req, res) => {
   res.json(getTopScores(LEADERBOARD_TOP));
+});
+
+app.get("/api/scores/standing", (req, res) => {
+  try {
+    res.json(evaluateScore(req.query.score));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 app.use(

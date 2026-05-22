@@ -4,6 +4,7 @@ const {
   sanitizePlayerName,
   sanitizeScore,
   sanitizeLimit,
+  LEADERBOARD_TOP,
 } = require("./lib/validate");
 
 const dbPath = path.join(__dirname, "scores.db");
@@ -62,4 +63,92 @@ function getTopScores(limit = 10) {
     .all(safeLimit);
 }
 
-module.exports = { addPlayerScore, getTopScores, dbPath };
+/**
+ * Leaderboard position for an existing row (ties: higher score first, then earlier time).
+ * @param {number} id
+ * @returns {number | null}
+ */
+function getStandingForEntry(id) {
+  const entry = db
+    .prepare(
+      `SELECT score, created_at AS createdAt FROM scores WHERE id = ?`
+    )
+    .get(id);
+  if (!entry) return null;
+
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) + 1 AS standing
+       FROM scores
+       WHERE score > @score
+          OR (score = @score AND created_at < @createdAt)`
+    )
+    .get({ score: entry.score, createdAt: entry.createdAt });
+
+  return row.standing;
+}
+
+/**
+ * Prospective standing if a new score were submitted (before tie-break among equals).
+ * @param {number} score
+ * @returns {number | null} null when score is 0 (unranked)
+ */
+function getProspectiveStanding(score) {
+  const points = sanitizeScore(score);
+  if (points <= 0) return null;
+
+  const row = db
+    .prepare(`SELECT COUNT(*) + 1 AS standing FROM scores WHERE score > ?`)
+    .get(points);
+
+  return row.standing;
+}
+
+/**
+ * Whether a score belongs on the leaderboard and its prospective rank if saved.
+ * Unranked when score is 0 or below the current top-10 cutoff.
+ * @param {number} score
+ * @returns {{ unranked: boolean, qualifies: boolean, standing: number | null }}
+ */
+function evaluateScore(score) {
+  const points = sanitizeScore(score);
+  if (points <= 0) {
+    return { unranked: true, qualifies: false, standing: null };
+  }
+
+  const top = getTopScores(LEADERBOARD_TOP);
+  if (top.length < LEADERBOARD_TOP) {
+    return {
+      unranked: false,
+      qualifies: true,
+      standing: getProspectiveStanding(points),
+    };
+  }
+
+  const cutoff = top[top.length - 1].score;
+  if (points < cutoff) {
+    return { unranked: true, qualifies: false, standing: null };
+  }
+
+  return {
+    unranked: false,
+    qualifies: true,
+    standing: getProspectiveStanding(points),
+  };
+}
+
+/** Remove all leaderboard rows. */
+function clearAllScores() {
+  const result = db.prepare("DELETE FROM scores").run();
+  return result.changes;
+}
+
+module.exports = {
+  addPlayerScore,
+  getTopScores,
+  getStandingForEntry,
+  getProspectiveStanding,
+  evaluateScore,
+  clearAllScores,
+  dbPath,
+};

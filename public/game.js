@@ -12,6 +12,7 @@
 
   const els = {
     playfield: document.getElementById("playfield"),
+    dangerLine: document.getElementById("danger-line"),
     letters: document.getElementById("letters"),
     score: document.getElementById("score"),
     combo: document.getElementById("combo"),
@@ -24,6 +25,7 @@
     startBtn: document.getElementById("start-btn"),
     restartBtn: document.getElementById("restart-btn"),
     finalScore: document.getElementById("final-score"),
+    finalStanding: document.getElementById("final-standing"),
     finalCombo: document.getElementById("final-combo"),
     finalHits: document.getElementById("final-hits"),
     finalAccuracy: document.getElementById("final-accuracy"),
@@ -32,8 +34,6 @@
     playerName: document.getElementById("player-name"),
     leaderboardList: document.getElementById("leaderboard-list"),
     leaderboardStatus: document.getElementById("leaderboard-status"),
-    saveStatus: document.getElementById("save-status"),
-    saveScoreBtn: document.getElementById("save-score-btn"),
     game: document.getElementById("game"),
     pauseBtn: document.getElementById("pause-btn"),
     pausePanel: document.getElementById("pause"),
@@ -146,37 +146,59 @@
     });
   }
 
-  function setSaveStatus(message, type) {
-    els.saveStatus.textContent = message;
-    els.saveStatus.className = "save-status" + (type ? " " + type : "");
+  function formatStanding(standing) {
+    return "#" + Number(standing).toLocaleString();
+  }
+
+  function setFinalStanding(unranked, standing) {
+    els.finalStanding.textContent =
+      unranked || standing == null ? "Unranked" : formatStanding(standing);
+  }
+
+  async function fetchScoreEvaluation(score) {
+    const res = await fetch(
+      "/api/scores/standing?score=" + encodeURIComponent(score)
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Could not evaluate score");
+    }
+    return data;
   }
 
   async function saveScoreToDatabase() {
+    const score = state.score;
     const name = getPlayerName();
-    if (!name) {
-      setSaveStatus("Enter your name on the start screen to save.", "err");
-      return false;
+    if (!name || scoreSavedThisGame) {
+      return { saved: false, standing: null };
     }
-    if (scoreSavedThisGame) {
-      setSaveStatus("Score already saved.", "ok");
-      return true;
-    }
-
-    els.saveScoreBtn.disabled = true;
-    setSaveStatus("Saving…", "");
 
     try {
-      await addPlayerScore(name, state.score);
+      const row = await addPlayerScore(name, score);
       scoreSavedThisGame = true;
       localStorage.setItem(PLAYER_STORAGE_KEY, name);
-      setSaveStatus("Score saved for " + name + "!", "ok");
-      els.saveScoreBtn.disabled = true;
       await loadLeaderboard();
-      return true;
-    } catch (err) {
-      setSaveStatus(err.message, "err");
-      els.saveScoreBtn.disabled = false;
-      return false;
+      return { saved: true, standing: row.standing ?? null };
+    } catch {
+      return { saved: false, standing: null };
+    }
+  }
+
+  async function resolveGameOverStanding() {
+    const score = state.score;
+
+    try {
+      const evaluation = await fetchScoreEvaluation(score);
+      if (evaluation.unranked || !evaluation.qualifies) {
+        setFinalStanding(true, null);
+        return;
+      }
+
+      const saveResult = await saveScoreToDatabase();
+      const standing = saveResult.standing ?? evaluation.standing;
+      setFinalStanding(false, standing);
+    } catch {
+      els.finalStanding.textContent = "—";
     }
   }
 
@@ -193,7 +215,6 @@
     els.resumeBtn.addEventListener("click", resumeGame);
     els.pauseMenuBtn.addEventListener("click", returnToMainMenu);
     els.gameoverMenuBtn.addEventListener("click", returnToMainMenu);
-    els.saveScoreBtn.addEventListener("click", saveScoreToDatabase);
     els.playerName.addEventListener("change", () => {
       const name = getPlayerName();
       if (name) localStorage.setItem(PLAYER_STORAGE_KEY, name);
@@ -238,8 +259,6 @@
     els.game.classList.remove("paused");
     els.pauseBtn.disabled = true;
     els.pauseBtn.textContent = "Pause";
-    els.saveScoreBtn.disabled = false;
-    setSaveStatus("", "");
     clearPlayerCache();
 
     renderLives();
@@ -270,8 +289,6 @@
     els.game.classList.remove("paused");
     els.pauseBtn.disabled = false;
     els.pauseBtn.textContent = "Pause";
-    setSaveStatus("", "");
-    els.saveScoreBtn.disabled = false;
     updateHud();
     lastTime = performance.now();
     spawnTimer = 0;
@@ -426,12 +443,9 @@
   function onKeyDown(e) {
     if (e.repeat) return;
 
-    if (e.key === "Escape" || e.key === "p" || e.key === "P") {
-      if (state.running && !els.gameover.classList.contains("hidden")) return;
-      if (state.running) {
-        e.preventDefault();
-        togglePause();
-      }
+    if (e.key === "Escape" && state.running) {
+      e.preventDefault();
+      togglePause();
       return;
     }
 
@@ -485,11 +499,64 @@
     updateHud();
   }
 
+  function flashElement(el, className, durationMs) {
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+    setTimeout(() => el.classList.remove(className), durationMs);
+  }
+
+  function spawnDangerBurst(x, y) {
+    const burst = document.createElement("div");
+    burst.className = "danger-burst";
+    burst.style.left = x + "px";
+    burst.style.top = y + "px";
+    els.playfield.appendChild(burst);
+
+    const ring = document.createElement("div");
+    ring.className = "danger-ring";
+    ring.style.left = x + "px";
+    ring.style.top = y + "px";
+    els.playfield.appendChild(ring);
+
+    setTimeout(() => {
+      burst.remove();
+      ring.remove();
+    }, 500);
+  }
+
+  function burstDangerExplosion(screenX, screenY) {
+    const colors = ["#ff3366", "#ff6b35", "#ffd60a", "#ffffff", "#ff8fa3"];
+    for (let i = 0; i < 28; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 100 + Math.random() * 220;
+      particles.push({
+        x: screenX,
+        y: screenY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 50,
+        life: 0.35 + Math.random() * 0.45,
+        color: colors[i % colors.length],
+        size: 2 + Math.random() * 5,
+      });
+    }
+  }
+
+  function dangerExplosion(L) {
+    const y = Math.min(L.y, dangerY);
+    const rect = els.playfield.getBoundingClientRect();
+    burstDangerExplosion(rect.left + L.x, rect.top + y);
+    spawnDangerBurst(L.x, y);
+    flashElement(els.dangerLine, "danger-flash", 400);
+    flashElement(els.playfield, "danger-hit", 400);
+    L.el.classList.add("danger-explode");
+  }
+
   function loseLife(L) {
+    dangerExplosion(L);
     state.misses++;
     state.combo = 1;
     comboTimer = 0;
-    L.el.classList.add("miss");
     setTimeout(() => L.el.remove(), 400);
     state.lives--;
     renderLives();
@@ -514,8 +581,9 @@
     els.finalCombo.textContent = "×" + state.maxCombo;
     els.finalHits.textContent = state.hits;
     els.finalAccuracy.textContent = acc + "%";
+    els.finalStanding.textContent = "…";
     els.gameover.classList.remove("hidden");
-    saveScoreToDatabase();
+    resolveGameOverStanding();
   }
 
   function updateHud() {

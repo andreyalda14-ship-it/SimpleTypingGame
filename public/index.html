@@ -47,7 +47,7 @@
     </div>
 
     <footer class="input-hint">
-      <span>Type falling letters to shoot them. Missed letters cost a life. Press <kbd>Esc</kbd> or <kbd>P</kbd> to pause.</span>
+      <span>Type falling letters to shoot them. Missed letters cost a life. Click <strong>Pause</strong> or press <kbd>Esc</kbd> to pause.</span>
       <kbd id="last-key" class="hidden"></kbd>
     </footer>
   </main>
@@ -94,7 +94,7 @@
         <button id="resume-btn" type="button">Resume</button>
         <button id="pause-menu-btn" type="button" class="btn-menu">Main Menu</button>
       </div>
-      <p class="tip">Press Esc or P to resume</p>
+      <p class="tip">Press Esc to resume</p>
     </div>
   </section>
 
@@ -103,13 +103,12 @@
       <h2>Game Over</h2>
       <dl class="stats">
         <div><dt>Final Score</dt><dd id="final-score">0</dd></div>
+        <div><dt>Standing</dt><dd id="final-standing">Unranked</dd></div>
         <div><dt>Best Combo</dt><dd id="final-combo">×1</dd></div>
         <div><dt>Letters Shot</dt><dd id="final-hits">0</dd></div>
         <div><dt>Accuracy</dt><dd id="final-accuracy">0%</dd></div>
       </dl>
-      <p id="save-status" class="save-status"></p>
       <div class="panel-actions gameover-actions">
-        <button id="save-score-btn" type="button">Save Score</button>
         <button id="restart-btn" type="button">Play Again</button>
         <button id="gameover-menu-btn" type="button" class="btn-menu">Main Menu</button>
       </div>
