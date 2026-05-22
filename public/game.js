@@ -44,6 +44,7 @@
     leaderboardStatus: document.getElementById("leaderboard-status"),
     game: document.getElementById("game"),
     pauseBtn: document.getElementById("pause-btn"),
+    muteBtn: document.getElementById("mute-btn"),
     pausePanel: document.getElementById("pause"),
     resumeBtn: document.getElementById("resume-btn"),
     pauseMenuBtn: document.getElementById("pause-menu-btn"),
@@ -75,6 +76,11 @@
   let dangerY = 0;
   let particleCtx = null;
   const particles = [];
+  const audio = window.SkyTypeAudio;
+
+  function playSfx(name, opts) {
+    if (audio) audio.play(name, opts);
+  }
 
   function createState() {
     return {
@@ -199,12 +205,14 @@
       const evaluation = await fetchScoreEvaluation(score);
       if (evaluation.unranked || !evaluation.qualifies) {
         setFinalStanding(true, null);
+        playSfx("unranked");
         return;
       }
 
       const saveResult = await saveScoreToDatabase();
       const standing = saveResult.standing ?? evaluation.standing;
       setFinalStanding(false, standing);
+      playSfx("ranked");
     } catch {
       els.finalStanding.textContent = "—";
     }
@@ -213,16 +221,45 @@
   function init() {
     resizeParticles();
     renderLives();
+    if (audio) audio.startMusicOnLoad();
 
     const savedName = localStorage.getItem(PLAYER_STORAGE_KEY);
     if (savedName) els.playerName.value = savedName;
 
-    els.startBtn.addEventListener("click", startGame);
-    els.restartBtn.addEventListener("click", startGame);
-    els.pauseBtn.addEventListener("click", togglePause);
-    els.resumeBtn.addEventListener("click", resumeGame);
-    els.pauseMenuBtn.addEventListener("click", returnToMainMenu);
-    els.gameoverMenuBtn.addEventListener("click", returnToMainMenu);
+    els.startBtn.addEventListener("click", () => {
+      playSfx("ui");
+      startGame();
+    });
+    els.restartBtn.addEventListener("click", () => {
+      playSfx("ui");
+      startGame();
+    });
+    els.pauseBtn.addEventListener("click", () => {
+      playSfx("ui");
+      togglePause();
+    });
+    els.resumeBtn.addEventListener("click", () => {
+      playSfx("ui");
+      resumeGame();
+    });
+    els.pauseMenuBtn.addEventListener("click", () => {
+      playSfx("ui");
+      returnToMainMenu();
+    });
+    els.gameoverMenuBtn.addEventListener("click", () => {
+      playSfx("ui");
+      returnToMainMenu();
+    });
+    els.muteBtn.addEventListener("click", () => {
+      if (!audio) return;
+      const muted = audio.toggleMute();
+      els.muteBtn.textContent = muted ? "🔇" : "🔊";
+      els.muteBtn.setAttribute(
+        "aria-label",
+        muted ? "Unmute sound" : "Mute sound"
+      );
+      els.muteBtn.title = muted ? "Unmute" : "Mute";
+    });
     els.playerName.addEventListener("change", () => {
       const name = getPlayerName();
       if (name) localStorage.setItem(PLAYER_STORAGE_KEY, name);
@@ -246,6 +283,9 @@
   }
 
   function returnToMainMenu() {
+    if (audio) audio.startMusic();
+    playSfx("menu");
+
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = null;
@@ -281,8 +321,11 @@
     if (!name) {
       els.playerName.focus();
       els.leaderboardStatus.textContent = "Enter your name before starting.";
+      playSfx("error");
       return;
     }
+    if (audio) audio.unlock();
+    playSfx("gameStart");
     localStorage.setItem(PLAYER_STORAGE_KEY, name);
 
     if (rafId) cancelAnimationFrame(rafId);
@@ -338,6 +381,8 @@
 
   function pauseGame() {
     if (!state.running || state.paused) return;
+    if (audio) audio.setMusicPaused(true);
+    playSfx("pause");
     state.paused = true;
     if (rafId) {
       cancelAnimationFrame(rafId);
@@ -351,6 +396,8 @@
 
   function resumeGame() {
     if (!state.running || !state.paused) return;
+    if (audio) audio.setMusicPaused(false);
+    playSfx("resume");
     state.paused = false;
     els.pausePanel.classList.add("hidden");
     els.game.classList.remove("paused");
@@ -399,6 +446,7 @@
     if (newLevel !== state.level) {
       state.level = newLevel;
       flashHud(els.level);
+      playSfx("levelUp");
     }
 
     if (comboTimer > 0) {
@@ -488,6 +536,7 @@
       state.combo = 1;
       comboTimer = 0;
       els.lastKey.classList.add("miss");
+      playSfx("wrong");
       updateHud();
       return;
     }
@@ -500,6 +549,7 @@
     comboTimer = COMBO_DECAY_MS;
 
     target.el.classList.add("hit");
+    playSfx("hit", { combo: state.combo });
     burstParticles(target.x, target.y + els.playfield.offsetTop);
     showScorePopup(target.x, target.y, "+" + points);
 
@@ -566,6 +616,7 @@
 
   function loseLife(L) {
     dangerExplosion(L);
+    playSfx("miss");
     state.misses++;
     state.combo = 1;
     comboTimer = 0;
@@ -580,6 +631,11 @@
   function endGame() {
     state.running = false;
     state.paused = false;
+    if (audio) {
+      audio.setMusicPaused(false);
+      audio.startMusic();
+    }
+    playSfx("gameOver");
     if (rafId) cancelAnimationFrame(rafId);
     els.pausePanel.classList.add("hidden");
     els.game.classList.remove("paused");

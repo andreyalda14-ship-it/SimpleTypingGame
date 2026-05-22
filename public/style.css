@@ -88,9 +88,14 @@ body {
   text-shadow: var(--glow);
 }
 
-.hud-btn {
+.hud-actions {
   margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
   align-self: center;
+}
+
+.hud-btn {
   font-family: "Orbitron", sans-serif;
   font-size: 0.7rem;
   font-weight: 700;
@@ -113,6 +118,14 @@ body {
 .hud-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.hud-btn-icon {
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 #game.paused #playfield {

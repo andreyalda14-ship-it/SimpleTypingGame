@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "rebuild:native": "npm rebuild better-sqlite3",
-    "clear-scores": "npm run rebuild:native && node scripts/clear-scores.js"
+    "clear-scores": "node scripts/clear-scores.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

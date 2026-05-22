@@ -38,7 +38,10 @@
         <span class="label">Accuracy</span>
         <span id="accuracy" class="value">100%</span>
       </div>
-      <button id="pause-btn" type="button" class="hud-btn" disabled>Pause</button>
+      <div class="hud-actions">
+        <button id="pause-btn" type="button" class="hud-btn" disabled>Pause</button>
+        <button id="mute-btn" type="button" class="hud-btn hud-btn-icon" aria-label="Mute sound" title="Toggle sound">🔊</button>
+      </div>
     </header>
 
     <div id="playfield">
@@ -115,6 +118,7 @@
     </div>
   </section>
 
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
