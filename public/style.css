@@ -197,18 +197,100 @@ body {
   justify-content: center;
   width: 52px;
   height: 52px;
-  font-family: "Orbitron", sans-serif;
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: var(--accent);
   background: var(--letter-bg);
   border: 2px solid var(--letter-border);
-  border-radius: 8px;
   box-shadow: var(--glow);
   transform: translate(-50%, -50%);
   transition: border-color 0.15s, box-shadow 0.15s;
   user-select: none;
   z-index: 1;
+}
+
+.letter-char {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* Random alien silhouettes */
+.letter.alien-orb {
+  border-radius: 50%;
+  background: rgba(120, 255, 180, 0.14);
+  border-color: rgba(120, 255, 180, 0.6);
+  box-shadow: 0 0 22px rgba(120, 255, 180, 0.45);
+}
+
+.letter.alien-blob {
+  border-radius: 58% 42% 62% 38% / 48% 55% 45% 52%;
+  background: rgba(0, 245, 212, 0.14);
+  border-color: rgba(0, 245, 212, 0.55);
+  animation: alien-blob-wobble 3s ease-in-out infinite;
+}
+
+.letter.alien-crystal {
+  clip-path: polygon(50% 0%, 95% 35%, 78% 100%, 22% 100%, 5% 35%);
+  background: rgba(180, 140, 255, 0.16);
+  border-color: rgba(180, 140, 255, 0.65);
+  box-shadow: 0 0 20px rgba(180, 140, 255, 0.4);
+}
+
+.letter.alien-amoeba {
+  clip-path: polygon(
+    30% 5%,
+    70% 0%,
+    95% 30%,
+    100% 65%,
+    75% 95%,
+    40% 100%,
+    10% 80%,
+    0% 45%
+  );
+  background: rgba(255, 120, 220, 0.12);
+  border-color: rgba(255, 120, 220, 0.55);
+  box-shadow: 0 0 18px rgba(255, 120, 220, 0.35);
+}
+
+.letter.alien-star {
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  background: rgba(255, 214, 10, 0.12);
+  border-color: rgba(255, 214, 10, 0.55);
+  box-shadow: 0 0 20px rgba(255, 214, 10, 0.35);
+}
+
+.letter.alien-hex {
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+  background: rgba(100, 200, 255, 0.14);
+  border-color: rgba(100, 200, 255, 0.6);
+  box-shadow: 0 0 20px rgba(100, 200, 255, 0.4);
+}
+
+@keyframes alien-blob-wobble {
+  0%,
+  100% {
+    border-radius: 58% 42% 62% 38% / 48% 55% 45% 52%;
+  }
+  50% {
+    border-radius: 42% 58% 38% 62% / 55% 45% 55% 45%;
+  }
+}
+
+.letter.targeted .letter-char {
+  color: var(--warning);
 }
 
 .letter.targeted {
@@ -242,8 +324,13 @@ body {
 }
 
 @keyframes letter-miss {
-  0% { opacity: 1; border-color: var(--danger); color: var(--danger); }
+  0% { opacity: 1; border-color: var(--danger); }
   100% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+}
+
+.letter.missed .letter-char,
+.letter.danger-explode .letter-char {
+  color: var(--danger);
 }
 
 .letter.danger-explode {

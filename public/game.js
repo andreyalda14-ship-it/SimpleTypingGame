@@ -2,6 +2,14 @@
   "use strict";
 
   const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const ALIEN_SHAPES = [
+    "alien-orb",
+    "alien-blob",
+    "alien-crystal",
+    "alien-amoeba",
+    "alien-star",
+    "alien-hex",
+  ];
   const INITIAL_LIVES = 3;
   const BASE_SPAWN_MS = 1400;
   const MIN_SPAWN_MS = 450;
@@ -410,9 +418,13 @@
     const char = LETTERS[Math.floor(Math.random() * LETTERS.length)];
     const x = 40 + Math.random() * (w - 80);
     const el = document.createElement("div");
-    el.className = "letter";
-    el.textContent = char;
+    const shape = ALIEN_SHAPES[Math.floor(Math.random() * ALIEN_SHAPES.length)];
+    el.className = "letter " + shape;
     el.dataset.char = char;
+    const glyph = document.createElement("span");
+    glyph.className = "letter-char";
+    glyph.textContent = char;
+    el.appendChild(glyph);
     const y = -30;
     el.style.left = x + "px";
     el.style.top = y + "px";
