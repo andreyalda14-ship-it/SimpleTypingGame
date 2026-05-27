@@ -1,20 +1,19 @@
-{
-  "name": "sky-type-shooting-game",
-  "version": "1.0.0",
-  "description": "Falling letter typing game with SQLite leaderboard",
-  "main": "server.js",
-  "engines": {
-    "node": ">=20.9.0"
-  },
-  "scripts": {
-    "start": "node server.js",
-    "rebuild:native": "npm rebuild better-sqlite3",
-    "clear-scores": "node scripts/clear-scores.js"
-  },
-  "dependencies": {
-    "better-sqlite3": "^11.10.0",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.1.0"
-  }
-}
+{
+  "name": "sky-type-shooting-game",
+  "version": "1.0.0",
+  "description": "Falling letter typing game with PostgreSQL leaderboard",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "clear-scores": "node scripts/clear-scores.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.0"
+  }
+}

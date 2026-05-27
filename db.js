@@ -1,5 +1,4 @@
-const Database = require("better-sqlite3");
-const path = require("path");
+const { Pool } = require("pg");
 const {
   sanitizePlayerName,
   sanitizeScore,
@@ -7,121 +6,160 @@ const {
   LEADERBOARD_TOP,
 } = require("./lib/validate");
 
-const dbPath = path.join(__dirname, "scores.db");
-const db = new Database(dbPath);
+let pool;
 
-db.pragma("journal_mode = WAL");
+function getPool() {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        "DATABASE_URL is required (PostgreSQL connection string)"
+      );
+    }
+    pool = new Pool({
+      connectionString,
+      ssl:
+        process.env.DATABASE_SSL === "0"
+          ? false
+          : process.env.DATABASE_SSL === "1"
+            ? { rejectUnauthorized: false }
+            : undefined,
+    });
+  }
+  return pool;
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS scores (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_name TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_scores_score ON scores (score DESC);
-`);
+async function initDb() {
+  const db = getPool();
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS scores (
+      id SERIAL PRIMARY KEY,
+      player_name TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_scores_leaderboard
+    ON scores (score DESC, created_at ASC)
+  `);
+}
+
+async function closeDb() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
 
 /**
- * Insert a player's name and score into the database.
+ * @param {import("pg").QueryResultRow} row
+ */
+function mapScoreRow(row) {
+  return {
+    id: row.id,
+    playerName: row.playerName,
+    score: row.score,
+    createdAt:
+      row.createdAt instanceof Date
+        ? row.createdAt.toISOString()
+        : row.createdAt,
+  };
+}
+
+/**
  * @param {string} playerName
  * @param {number} score
- * @returns {{ id: number, playerName: string, score: number, createdAt: string }}
  */
-function addPlayerScore(playerName, score) {
+async function addPlayerScore(playerName, score) {
   const name = sanitizePlayerName(playerName);
   const points = sanitizeScore(score);
+  const db = getPool();
 
-  const stmt = db.prepare(
-    "INSERT INTO scores (player_name, score) VALUES (?, ?)"
+  const { rows } = await db.query(
+    `INSERT INTO scores (player_name, score)
+     VALUES ($1, $2)
+     RETURNING id, player_name AS "playerName", score, created_at AS "createdAt"`,
+    [name, points]
   );
-  const result = stmt.run(name, points);
 
-  const row = db
-    .prepare(
-      `SELECT id, player_name AS playerName, score, created_at AS createdAt
-       FROM scores WHERE id = ?`
-    )
-    .get(result.lastInsertRowid);
-
-  return row;
+  return mapScoreRow(rows[0]);
 }
 
 /**
  * @param {number} [limit=10]
- * @returns {Array<{ id: number, playerName: string, score: number, createdAt: string }>}
  */
-function getTopScores(limit = 10) {
+async function getTopScores(limit = 10) {
   const safeLimit = sanitizeLimit(limit);
-  return db
-    .prepare(
-      `SELECT id, player_name AS playerName, score, created_at AS createdAt
-       FROM scores
-       ORDER BY score DESC, created_at ASC
-       LIMIT ?`
-    )
-    .all(safeLimit);
+  const db = getPool();
+
+  const { rows } = await db.query(
+    `SELECT id, player_name AS "playerName", score, created_at AS "createdAt"
+     FROM scores
+     ORDER BY score DESC, created_at ASC
+     LIMIT $1`,
+    [safeLimit]
+  );
+
+  return rows.map(mapScoreRow);
 }
 
 /**
- * Leaderboard position for an existing row (ties: higher score first, then earlier time).
  * @param {number} id
- * @returns {number | null}
+ * @returns {Promise<number | null>}
  */
-function getStandingForEntry(id) {
-  const entry = db
-    .prepare(
-      `SELECT score, created_at AS createdAt FROM scores WHERE id = ?`
-    )
-    .get(id);
+async function getStandingForEntry(id) {
+  const db = getPool();
+  const entryResult = await db.query(
+    `SELECT score, created_at AS "createdAt" FROM scores WHERE id = $1`,
+    [id]
+  );
+  const entry = entryResult.rows[0];
   if (!entry) return null;
 
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) + 1 AS standing
-       FROM scores
-       WHERE score > @score
-          OR (score = @score AND created_at < @createdAt)`
-    )
-    .get({ score: entry.score, createdAt: entry.createdAt });
+  const standingResult = await db.query(
+    `SELECT COUNT(*)::int + 1 AS standing
+     FROM scores
+     WHERE score > $1
+        OR (score = $2 AND created_at < $3)`,
+    [entry.score, entry.score, entry.createdAt]
+  );
 
-  return row.standing;
+  return standingResult.rows[0].standing;
 }
 
 /**
- * Prospective standing if a new score were submitted (before tie-break among equals).
  * @param {number} score
- * @returns {number | null} null when score is 0 (unranked)
+ * @returns {Promise<number | null>}
  */
-function getProspectiveStanding(score) {
+async function getProspectiveStanding(score) {
   const points = sanitizeScore(score);
   if (points <= 0) return null;
 
-  const row = db
-    .prepare(`SELECT COUNT(*) + 1 AS standing FROM scores WHERE score > ?`)
-    .get(points);
+  const db = getPool();
+  const { rows } = await db.query(
+    `SELECT COUNT(*)::int + 1 AS standing FROM scores WHERE score > $1`,
+    [points]
+  );
 
-  return row.standing;
+  return rows[0].standing;
 }
 
 /**
- * Whether a score belongs on the leaderboard and its prospective rank if saved.
- * Unranked when score is 0 or below the current top-10 cutoff.
  * @param {number} score
- * @returns {{ unranked: boolean, qualifies: boolean, standing: number | null }}
  */
-function evaluateScore(score) {
+async function evaluateScore(score) {
   const points = sanitizeScore(score);
   if (points <= 0) {
     return { unranked: true, qualifies: false, standing: null };
   }
 
-  const top = getTopScores(LEADERBOARD_TOP);
+  const top = await getTopScores(LEADERBOARD_TOP);
   if (top.length < LEADERBOARD_TOP) {
     return {
       unranked: false,
       qualifies: true,
-      standing: getProspectiveStanding(points),
+      standing: await getProspectiveStanding(points),
     };
   }
 
@@ -133,22 +171,23 @@ function evaluateScore(score) {
   return {
     unranked: false,
     qualifies: true,
-    standing: getProspectiveStanding(points),
+    standing: await getProspectiveStanding(points),
   };
 }
 
-/** Remove all leaderboard rows. */
-function clearAllScores() {
-  const result = db.prepare("DELETE FROM scores").run();
-  return result.changes;
+async function clearAllScores() {
+  const db = getPool();
+  const result = await db.query("DELETE FROM scores");
+  return result.rowCount;
 }
 
 module.exports = {
+  initDb,
+  closeDb,
   addPlayerScore,
   getTopScores,
   getStandingForEntry,
   getProspectiveStanding,
   evaluateScore,
   clearAllScores,
-  dbPath,
 };

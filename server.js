@@ -3,6 +3,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const {
+  initDb,
   addPlayerScore,
   getTopScores,
   getStandingForEntry,
@@ -73,31 +74,36 @@ const scorePostLimiter = rateLimit({
 
 app.use("/api", apiLimiter);
 
-app.post("/api/scores", scorePostLimiter, (req, res) => {
+app.post("/api/scores", scorePostLimiter, async (req, res) => {
   try {
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({ error: "Invalid request body" });
     }
     const { name, score } = req.body;
-    const result = evaluateScore(score);
+    const result = await evaluateScore(score);
     if (!result.qualifies) {
       return res.status(400).json({ error: "Score does not qualify for the leaderboard" });
     }
-    const row = addPlayerScore(name, score);
-    const standing = getStandingForEntry(row.id);
+    const row = await addPlayerScore(name, score);
+    const standing = await getStandingForEntry(row.id);
     res.status(201).json({ ...row, standing });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.get("/api/scores", (req, res) => {
-  res.json(getTopScores(LEADERBOARD_TOP));
+app.get("/api/scores", async (req, res) => {
+  try {
+    res.json(await getTopScores(LEADERBOARD_TOP));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
-app.get("/api/scores/standing", (req, res) => {
+app.get("/api/scores/standing", async (req, res) => {
   try {
-    res.json(evaluateScore(req.query.score));
+    res.json(await evaluateScore(req.query.score));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -122,6 +128,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Sky Type server running at http://localhost:${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Sky Type server running at http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Database init failed:", err.message);
+    process.exit(1);
+  });

@@ -1,0 +1,18 @@
+# Install: sudo cp deploy/nginx-skytype.conf.example /etc/nginx/sites-available/skytype
+# Edit server_name, then: sudo ln -s .../sites-available/skytype /etc/nginx/sites-enabled/
+# Test: sudo nginx -t && sudo systemctl reload nginx
+# TLS: sudo certbot --nginx -d your-domain.com
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

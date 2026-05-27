@@ -1,14 +1,16 @@
 "use strict";
 
-const Database = require("better-sqlite3");
-const path = require("path");
+const { initDb, clearAllScores, closeDb } = require("../db");
 
-const dbPath = path.join(__dirname, "..", "scores.db");
-const db = new Database(dbPath);
-
-try {
-  const removed = db.prepare("DELETE FROM scores").run().changes;
-  console.log(`Cleared ${removed} score record(s) from ${dbPath}.`);
-} finally {
-  db.close();
-}
+(async () => {
+  try {
+    await initDb();
+    const removed = await clearAllScores();
+    console.log(`Cleared ${removed} score record(s) from PostgreSQL.`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  } finally {
+    await closeDb();
+  }
+})();
