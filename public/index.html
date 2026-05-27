@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 </head>
 <body>
+  <div id="app-viewport">
   <div id="stars"></div>
   <canvas id="particles"></canvas>
 
@@ -50,6 +51,19 @@
     </div>
 
     <footer class="input-hint">
+      <input
+        id="game-input"
+        class="game-input"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        enterkeyhint="done"
+        aria-label="Type letters to play"
+        tabindex="-1"
+      />
       <span>Type falling letters to shoot them. Missed letters cost a life. Click <strong>Pause</strong> or press <kbd>Esc</kbd> to pause.</span>
       <kbd id="last-key" class="hidden"></kbd>
     </footer>
@@ -67,6 +81,10 @@
       </ul>
       <label class="player-label" for="player-name">Player name</label>
       <input id="player-name" class="player-input" type="text" maxlength="32" pattern="[\w\s.\-]{1,32}" title="Letters, numbers, spaces, and . _ - only" placeholder="Enter your name" autocomplete="nickname" required />
+      <label class="setting-row setting-row--mobile" for="portrait-lock">
+        <input id="portrait-lock" type="checkbox" checked />
+        <span>Lock portrait on phone &amp; tablet</span>
+      </label>
       <button id="start-btn" type="button">Start Game</button>
       <p class="tip">Click Start Game to begin</p>
       <aside class="leaderboard">
@@ -117,6 +135,7 @@
       </div>
     </div>
   </section>
+  </div>
 
   <script src="audio.js"></script>
   <script src="game.js"></script>

@@ -40,6 +40,8 @@
     lastKey: document.getElementById("last-key"),
     particles: document.getElementById("particles"),
     playerName: document.getElementById("player-name"),
+    portraitLock: document.getElementById("portrait-lock"),
+    gameInput: document.getElementById("game-input"),
     leaderboardList: document.getElementById("leaderboard-list"),
     leaderboardStatus: document.getElementById("leaderboard-status"),
     game: document.getElementById("game"),
@@ -63,7 +65,15 @@
   };
 
   const PLAYER_STORAGE_KEY = "skyTypePlayerName";
+  const PORTRAIT_LOCK_KEY = "skyTypePortraitLock";
   const PLAYER_NAME_RE = /^[\w\s.\-]{1,32}$/i;
+  const touchPhoneMq = window.matchMedia(
+    "(max-width: 896px) and (hover: none) and (pointer: coarse)"
+  );
+  const touchTabletMq = window.matchMedia(
+    "(max-width: 1024px) and (hover: none) and (pointer: coarse)"
+  );
+  const landscapeMq = window.matchMedia("(orientation: landscape)");
   const LEADERBOARD_TOP = 10;
   let scoreSavedThisGame = false;
 
@@ -218,6 +228,92 @@
     }
   }
 
+  function isTabletUa() {
+    const ua = navigator.userAgent;
+    if (/iPad/i.test(ua)) return true;
+    if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) {
+      return true;
+    }
+    if (/Android/i.test(ua) && !/Mobile/i.test(ua)) return true;
+    if (/Tablet|PlayBook|Silk|Kindle/i.test(ua)) return true;
+    return false;
+  }
+
+  function isPhoneUa() {
+    return /iPhone|iPod|Android.*Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  }
+
+  /** Phones, tablets, and touch handhelds — not desktop/laptop. */
+  function isMobileDevice() {
+    if (isPhoneUa() || isTabletUa()) return true;
+    return touchPhoneMq.matches || touchTabletMq.matches;
+  }
+
+  function syncMobileUi() {
+    const mobile = isMobileDevice();
+    document.documentElement.classList.toggle("is-mobile", mobile);
+    if (els.gameInput) {
+      els.gameInput.disabled = !mobile;
+      if (!mobile) blurGameInput();
+    }
+  }
+
+  function isPortraitLockEnabled() {
+    const stored = localStorage.getItem(PORTRAIT_LOCK_KEY);
+    if (stored === null) return isMobileDevice();
+    return stored === "1";
+  }
+
+  function applyPortraitLock() {
+    const active = isPortraitLockEnabled() && isMobileDevice();
+    document.documentElement.classList.toggle("portrait-lock-active", active);
+    document.documentElement.classList.toggle(
+      "portrait-lock-landscape",
+      active && landscapeMq.matches
+    );
+    resizeParticles();
+  }
+
+  function tryScreenPortraitLock() {
+    if (!isPortraitLockEnabled() || !isMobileDevice()) return;
+    const orient = screen.orientation;
+    if (orient && typeof orient.lock === "function") {
+      orient.lock("portrait").catch(() => {});
+    }
+  }
+
+  function getViewportSize() {
+    if (document.documentElement.classList.contains("portrait-lock-landscape")) {
+      return { w: window.innerHeight, h: window.innerWidth };
+    }
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
+
+  function focusGameInput() {
+    if (!els.gameInput || !isMobileDevice()) return;
+    els.gameInput.value = "";
+    els.gameInput.classList.add("game-input--active");
+    els.gameInput.focus({ preventScroll: true });
+  }
+
+  function blurGameInput() {
+    if (!els.gameInput) return;
+    els.gameInput.classList.remove("game-input--active");
+    els.gameInput.blur();
+    els.gameInput.value = "";
+  }
+
+  function onGameInput(e) {
+    if (!isMobileDevice() || !state.running || state.paused) return;
+    const raw = e.target.value;
+    e.target.value = "";
+    for (const char of raw.toUpperCase()) {
+      if (char.length === 1 && LETTERS.includes(char)) handleShot(char);
+    }
+  }
+
   function init() {
     resizeParticles();
     renderLives();
@@ -225,6 +321,28 @@
 
     const savedName = localStorage.getItem(PLAYER_STORAGE_KEY);
     if (savedName) els.playerName.value = savedName;
+
+    if (els.portraitLock) {
+      els.portraitLock.checked = isPortraitLockEnabled();
+      els.portraitLock.addEventListener("change", () => {
+        localStorage.setItem(
+          PORTRAIT_LOCK_KEY,
+          els.portraitLock.checked ? "1" : "0"
+        );
+        applyPortraitLock();
+        if (els.portraitLock.checked) tryScreenPortraitLock();
+      });
+    }
+    syncMobileUi();
+    applyPortraitLock();
+    const onViewportChange = () => {
+      syncMobileUi();
+      applyPortraitLock();
+    };
+    window.addEventListener("resize", onViewportChange);
+    landscapeMq.addEventListener("change", onViewportChange);
+    touchPhoneMq.addEventListener("change", onViewportChange);
+    touchTabletMq.addEventListener("change", onViewportChange);
 
     els.startBtn.addEventListener("click", () => {
       playSfx("ui");
@@ -265,15 +383,18 @@
       if (name) localStorage.setItem(PLAYER_STORAGE_KEY, name);
     });
 
-    window.addEventListener("resize", resizeParticles);
+    if (els.gameInput) {
+      els.gameInput.addEventListener("input", onGameInput);
+    }
     document.addEventListener("keydown", onKeyDown);
     loadLeaderboard();
   }
 
   function resizeParticles() {
     const c = els.particles;
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
+    const { w, h } = getViewportSize();
+    c.width = w;
+    c.height = h;
     particleCtx = c.getContext("2d");
   }
 
@@ -313,6 +434,7 @@
     updateHud();
     els.leaderboardStatus.textContent = "";
     loadLeaderboard();
+    blurGameInput();
     els.playerName.focus();
   }
 
@@ -325,6 +447,7 @@
       return;
     }
     if (audio) audio.unlock();
+    tryScreenPortraitLock();
     playSfx("gameStart");
     localStorage.setItem(PLAYER_STORAGE_KEY, name);
 
@@ -345,6 +468,7 @@
     spawnTimer = 0;
     comboTimer = 0;
     updateDangerLine();
+    focusGameInput();
     loop(lastTime);
   }
 
@@ -392,6 +516,7 @@
     els.pausePanel.classList.remove("hidden");
     els.game.classList.add("paused");
     els.pauseBtn.textContent = "Paused";
+    blurGameInput();
   }
 
   function resumeGame() {
@@ -403,6 +528,7 @@
     els.game.classList.remove("paused");
     els.pauseBtn.textContent = "Pause";
     lastTime = performance.now();
+    focusGameInput();
     rafId = requestAnimationFrame(loop);
   }
 
@@ -520,6 +646,8 @@
     }
 
     if (!state.running || state.paused) return;
+
+    if (isMobileDevice() && document.activeElement === els.gameInput) return;
 
     e.preventDefault();
     handleShot(key);
@@ -650,6 +778,7 @@
     els.finalHits.textContent = state.hits;
     els.finalAccuracy.textContent = acc + "%";
     els.finalStanding.textContent = "…";
+    blurGameInput();
     els.gameover.classList.remove("hidden");
     resolveGameOverStanding();
   }

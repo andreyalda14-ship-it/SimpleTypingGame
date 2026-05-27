@@ -29,6 +29,33 @@ body {
   font-family: "Share Tech Mono", monospace;
 }
 
+#app-viewport {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Portrait lock on phones & tablets when turned sideways */
+@media screen and (orientation: landscape) {
+  html.portrait-lock-active.is-mobile body {
+    overflow: hidden;
+  }
+
+  html.portrait-lock-active.is-mobile #app-viewport {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100vh;
+    width: 100dvh;
+    height: 100vw;
+    height: 100dvw;
+    min-height: 0;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+}
+
 #stars {
   position: fixed;
   inset: 0;
@@ -56,7 +83,9 @@ body {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   max-width: 1100px;
   margin: 0 auto;
   padding: 1rem 1.25rem 0.75rem;
@@ -471,10 +500,35 @@ body {
 }
 
 .input-hint {
+  position: relative;
   padding: 0.6rem 0;
   font-size: 0.75rem;
   color: var(--muted);
   text-align: center;
+}
+
+/* Hidden capture field — focus on mobile to show the soft keyboard */
+.game-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.game-input.game-input--active {
+  pointer-events: auto;
+}
+
+html:not(.is-mobile) .game-input {
+  display: none !important;
 }
 
 #last-key {
@@ -631,6 +685,28 @@ button:active {
 .player-input:focus {
   border-color: var(--accent);
   box-shadow: var(--glow);
+}
+
+.setting-row {
+  display: none;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.setting-row input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+html.is-mobile .setting-row--mobile {
+  display: flex;
 }
 
 .leaderboard {
