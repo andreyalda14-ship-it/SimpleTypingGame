@@ -8,6 +8,8 @@ const {
   getTopScores,
   getStandingForEntry,
   evaluateScore,
+  getBackend,
+  getStorageLabel,
 } = require("./db");
 const { LEADERBOARD_TOP } = require("./lib/validate");
 
@@ -132,6 +134,7 @@ initDb()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Sky Type server running at http://localhost:${PORT}`);
+      console.log(`Database (${getBackend()}): ${getStorageLabel()}`);
     });
   })
   .catch((err) => {
