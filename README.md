@@ -13,12 +13,18 @@ The same **Express** server (`server.js`) runs in both modes.
 
 ## Setup (local dev)
 
-Requires **Node.js 20.9+**.
+Requires **Node.js 20.x** (see `.nvmrc`). Use the same Node version for `npm install` and `npm run dev`.
 
 ```bash
-node -v
+node -v    # should be v20.x
 npm install
-npm run rebuild:native   # only if npm run dev fails with NODE_MODULE_VERSION
+npm run dev
+```
+
+`npm run dev` rebuilds the SQLite native module automatically when needed. If rebuild fails, **stop all running servers/debug sessions**, then:
+
+```bash
+npm run rebuild:native
 npm run dev
 ```
 

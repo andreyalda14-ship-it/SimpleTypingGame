@@ -1,4 +1,3 @@
-const Database = require("better-sqlite3");
 const path = require("path");
 const {
   sanitizePlayerName,
@@ -10,11 +9,32 @@ const {
 const dbPath =
   process.env.DATABASE_PATH || path.join(__dirname, "..", "scores.db");
 
+let Database;
 let db;
+
+function loadDatabaseCtor() {
+  if (Database) return Database;
+  try {
+    Database = require("better-sqlite3");
+    return Database;
+  } catch (err) {
+    if (
+      err.code === "ERR_DLOPEN_FAILED" ||
+      /NODE_MODULE_VERSION/i.test(String(err.message))
+    ) {
+      throw new Error(
+        "SQLite native module does not match this Node.js version. " +
+          "Stop the server, then run: npm run rebuild:native"
+      );
+    }
+    throw err;
+  }
+}
 
 function getDb() {
   if (!db) {
-    db = new Database(dbPath);
+    const Ctor = loadDatabaseCtor();
+    db = new Ctor(dbPath);
     db.pragma("journal_mode = WAL");
   }
   return db;

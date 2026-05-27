@@ -8,6 +8,20 @@ const {
 
 let pool;
 
+function getSslConfig(connectionString) {
+  if (process.env.DATABASE_SSL === "0") return false;
+  if (process.env.DATABASE_SSL === "1") {
+    return { rejectUnauthorized: false };
+  }
+  if (
+    /sslmode=require/i.test(connectionString) ||
+    /ondigitalocean\.com/i.test(connectionString)
+  ) {
+    return { rejectUnauthorized: false };
+  }
+  return undefined;
+}
+
 function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
@@ -16,12 +30,7 @@ function getPool() {
     }
     pool = new Pool({
       connectionString,
-      ssl:
-        process.env.DATABASE_SSL === "0"
-          ? false
-          : process.env.DATABASE_SSL === "1"
-            ? { rejectUnauthorized: false }
-            : undefined,
+      ssl: getSslConfig(connectionString),
     });
   }
   return pool;

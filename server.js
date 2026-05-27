@@ -139,5 +139,10 @@ initDb()
   })
   .catch((err) => {
     console.error("Database init failed:", err.message);
+    if (/NODE_MODULE_VERSION|rebuild:native/i.test(String(err.message))) {
+      console.error(
+        "Tip: stop all Node/debug sessions, then run npm run rebuild:native"
+      );
+    }
     process.exit(1);
   });
