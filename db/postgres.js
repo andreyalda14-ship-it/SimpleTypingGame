@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const { requireDatabaseUrl } = require("../lib/database-url");
 const {
   sanitizePlayerName,
   sanitizeScore,
@@ -24,10 +25,7 @@ function getSslConfig(connectionString) {
 
 function getPool() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
-      throw new Error("DATABASE_URL is required for PostgreSQL");
-    }
+    const connectionString = requireDatabaseUrl();
     pool = new Pool({
       connectionString,
       ssl: getSslConfig(connectionString),

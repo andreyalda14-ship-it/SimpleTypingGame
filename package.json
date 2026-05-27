@@ -4,12 +4,11 @@
   "description": "Falling letter typing game with leaderboard (SQLite dev, PostgreSQL production)",
   "main": "server.js",
   "engines": {
-    "node": "24.16.0"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "start": "node server.js",
     "dev": "node scripts/ensure-sqlite-native.js && node server.js",
-    "postinstall": "node scripts/ensure-sqlite-native.js",
     "rebuild:native": "npm rebuild better-sqlite3",
     "clear-scores": "node scripts/clear-scores.js"
   },

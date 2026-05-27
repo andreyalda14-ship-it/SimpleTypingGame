@@ -1,0 +1,26 @@
+# DigitalOcean App Platform spec (adjust repo/branch to match your GitHub app)
+name: skytype
+region: nyc
+
+services:
+  - name: web
+    github:
+      repo: andreyalda14-ship-it/SimpleTypingGame
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    environment_slug: node-js
+    build_command: npm ci
+    run_command: npm start
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: NODE_ENV
+        value: production
+        scope: RUN_AND_BUILD_TIME
+      - key: TRUST_PROXY
+        value: "1"
+        scope: RUN_TIME
+    # Link PostgreSQL under the DO UI (Resources → Database), then set:
+    #   DATABASE_URL = ${your-db-component-name.DATABASE_URL}

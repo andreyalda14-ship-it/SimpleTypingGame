@@ -3,13 +3,18 @@
 const { execSync } = require("child_process");
 const path = require("path");
 
-// Skip on production / CI / Postgres-only deploys (DigitalOcean App Platform)
+// Dev-only — never run during DigitalOcean / production builds
 if (
   process.env.NODE_ENV === "production" ||
   process.env.CI === "true" ||
-  process.env.DATABASE_URL ||
+  process.env.DIGITALOCEAN_APP_ID ||
   process.env.SKIP_SQLITE_SETUP === "1"
 ) {
+  process.exit(0);
+}
+
+const { getDatabaseUrl } = require("../lib/database-url");
+if (getDatabaseUrl()) {
   process.exit(0);
 }
 

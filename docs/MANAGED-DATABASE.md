@@ -52,6 +52,14 @@ Without a trusted source, connections are refused.
 
 4. Set it as **`DATABASE_URL`** on your app (never commit it to git).
 
+   On **App Platform**, after linking the database under **Resources**, add an env var:
+
+   ```
+   DATABASE_URL = ${your-database-component-name.DATABASE_URL}
+   ```
+
+   Use the exact component name from your app spec (not a literal `${...}` string that was never expanded).
+
 The app creates the `scores` table automatically on startup (`initDb()`). You can also run `sql/schema.sql` manually in the cluster’s **SQL console** if you prefer.
 
 ---

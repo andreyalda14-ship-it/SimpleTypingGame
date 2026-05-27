@@ -2,23 +2,24 @@
  * Database facade: PostgreSQL in production, SQLite for local development.
  */
 
+const { getDatabaseUrl } = require("./lib/database-url");
+
 let driver;
 
 function selectDriver() {
   const isProduction = process.env.NODE_ENV === "production";
+  const databaseUrl = getDatabaseUrl();
 
   if (isProduction) {
-    if (!process.env.DATABASE_URL) {
+    if (!databaseUrl) {
       throw new Error(
-        "DATABASE_URL is required when NODE_ENV=production. " +
-          "On DigitalOcean App Platform: link your PostgreSQL database under Resources " +
-          "or add DATABASE_URL (e.g. ${your-db.DATABASE_URL}) in Environment Variables."
+        "DATABASE_URL is required when NODE_ENV=production (PostgreSQL)"
       );
     }
     return require("./db/postgres");
   }
 
-  if (process.env.DATABASE_URL) {
+  if (databaseUrl) {
     return require("./db/postgres");
   }
 
