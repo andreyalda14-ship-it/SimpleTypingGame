@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const { requireDatabaseUrl } = require("../lib/database-url");
+const { buildPgPoolConfig } = require("../lib/pg-pool-config");
 const {
   sanitizePlayerName,
   sanitizeScore,
@@ -9,27 +10,10 @@ const {
 
 let pool;
 
-function getSslConfig(connectionString) {
-  if (process.env.DATABASE_SSL === "0") return false;
-  if (process.env.DATABASE_SSL === "1") {
-    return { rejectUnauthorized: false };
-  }
-  if (
-    /sslmode=require/i.test(connectionString) ||
-    /ondigitalocean\.com/i.test(connectionString)
-  ) {
-    return { rejectUnauthorized: false };
-  }
-  return undefined;
-}
-
 function getPool() {
   if (!pool) {
     const connectionString = requireDatabaseUrl();
-    pool = new Pool({
-      connectionString,
-      ssl: getSslConfig(connectionString),
-    });
+    pool = new Pool(buildPgPoolConfig(connectionString));
   }
   return pool;
 }

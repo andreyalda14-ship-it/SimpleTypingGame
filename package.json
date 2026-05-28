@@ -4,7 +4,7 @@
   "description": "Falling letter typing game with leaderboard (SQLite dev, PostgreSQL production)",
   "main": "server.js",
   "engines": {
-    "node": "22.x"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,6 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
-    "node": "^24.16.0",
     "pg": "^8.16.0"
   },
   "devDependencies": {

@@ -147,5 +147,10 @@ initDb()
         "Tip: stop all Node/debug sessions, then run npm run rebuild:native"
       );
     }
+    if (/self-signed certificate|certificate chain/i.test(String(err.message))) {
+      console.error(
+        "Tip: deploy latest code (lib/pg-pool-config.js) or set DATABASE_SSL=1 on App Platform"
+      );
+    }
     process.exit(1);
   });
